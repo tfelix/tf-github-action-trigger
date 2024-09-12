@@ -1,7 +1,7 @@
 variable "github_token" {
   description = "GitHub Personal Access Token"
   type        = string
-  sensitive   = false
+  sensitive   = true
 }
 
 variable "github_owner" {
@@ -34,8 +34,8 @@ variable "workflow_branch" {
   type = string
 }
 
-variable "building_block_run" {
+variable "building_block_run_b64" {
   default = "{}"
-  description = "The content of the Building Block Run."
+  description = "The base64 encoded JSON of the Building Block Run object."
   type = string
 }
