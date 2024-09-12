@@ -1,0 +1,32 @@
+name: Deploy Resources
+
+on:
+  workflow_dispatch:
+    inputs:
+      bb-run:
+        description: 'Building Block Run Object'
+        required: true
+
+jobs:
+  parse-json:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Received Building Block Run
+        run: |
+          echo "Received JSON: ${{ github.event.inputs.bb-run }}"
+
+      - name: Parse JSON Input
+        id: parse_json
+        run: |
+          echo "Received JSON: ${{ github.event.inputs.config }}"
+          echo "Parsed Value 1: $(echo '${{ github.event.inputs.bb-run }}' | jq -r .key1)"
+          echo "Parsed Value 2: $(echo '${{ github.event.inputs.bb-run }}' | jq -r .key2)"
+
+      # You can use parsed values in subsequent steps
+      - name: Use Parsed Values
+        run: |
+          value1=$(echo '${{ github.event.inputs.bb-run }}' | jq -r .key1)
+          echo "Using parsed value1: $value1"

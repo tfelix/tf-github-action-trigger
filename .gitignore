@@ -1,0 +1,33 @@
+# Local .terraform directories
+**/.terraform/*
+
+# .tfstate files
+*.tfstate
+*.tfstate.*
+
+# Crash log files
+crash.log
+
+# Extension-based backups
+*.backup
+*.log
+
+# Override files (used for local-only changes)
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# .tfvars files (can contain sensitive information)
+*.tfvars
+*.tfvars.json
+
+# .envrc files (for direnv)
+.envrc
+
+# .terraformrc (Terraform CLI configuration file)
+.terraformrc
+.terraform.rc
+
+# Ignore output files created by terraform-docs
+README.md.bak
