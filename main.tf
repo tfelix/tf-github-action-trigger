@@ -5,20 +5,17 @@ resource "terraform_data" "replacement" {
     github_owner               = var.github_owner
     workflow_branch            = var.workflow_branch
     workflow_destroy_file_name = var.workflow_destroy_file_name
-    building_block_run_b64     = var.building_block_run_b64
-    user_permissions = var.user_permissions
+    meshstack_building_block_run_b64 = var.meshstack_building_block_run_b64
   }
 
   triggers_replace = [
-    var.building_block_run_b64,
-    var.user_permissions
+    var.meshstack_building_block_run_b64,
   ]
 
   provisioner "local-exec" {
     when = create
     environment = {
-      run_data = jsondecode(base64decode(var.building_block_run_b64)).spec.behavior
-      user_permissions = base64encode(jsonencode(var.user_permissions))
+      run_data = jsondecode(base64decode(var.meshstack_building_block_run_b64)).spec.behavior
     }
     command = <<EOT
       set -e
@@ -29,7 +26,7 @@ resource "terraform_data" "replacement" {
         -H "Accept: application/vnd.github.v3+json" \
         -H "Authorization: token ${var.github_token}" \
         https://api.github.com/repos/${var.github_owner}/${var.github_repo}/actions/workflows/${var.workflow_create_file_name}/dispatches \
-        -d '{"ref":"${var.workflow_branch}", "inputs": {"bb-run":"${var.building_block_run_b64}", "user-permissions": "$user_permissions"}}'
+        -d "{\"ref\":\"${var.workflow_branch}\", \"inputs\": {\"bb-run\":\"${var.meshstack_building_block_run_b64}\"}}"
     EOT
   }
 
@@ -37,7 +34,6 @@ resource "terraform_data" "replacement" {
     when = destroy
     environment = {
       run_data = jsondecode(base64decode(self.input.building_block_run_b64)).spec.behavior
-      user_permissions = base64encode(jsonencode(self.input.user_permissions))
     }
     command = <<EOT
       set -e
@@ -49,7 +45,7 @@ resource "terraform_data" "replacement" {
         -H "Accept: application/vnd.github.v3+json" \
         -H "Authorization: token ${self.input.github_token}" \
         https://api.github.com/repos/${self.input.github_owner}/${self.input.github_repo}/actions/workflows/${self.input.workflow_destroy_file_name}/dispatches \
-        -d '{"ref":"${self.input.workflow_branch}", "inputs": {"bb-run":"${self.input.building_block_run_b64}", "user-permissions": "$user_permissions"}}'
+        -d "{\"ref\":\"${self.input.workflow_branch}\", \"inputs\": {\"bb-run\":\"${self.input.meshstack_building_block_run_b64}\"}}"
     EOT
   }
 }
