@@ -1,7 +1,7 @@
 variable "github_token" {
   description = "GitHub Personal Access Token"
   type        = string
-  sensitive   = true
+  sensitive   = false
 }
 
 variable "github_owner" {
@@ -38,4 +38,18 @@ variable "building_block_run_b64" {
   default = "{}"
   description = "The base64 encoded JSON of the Building Block Run object."
   type = string
+}
+
+variable "user_permissions" {
+  default = []
+  description = "List with objects of user permissions which are assigned on the project."
+  type = list(object({
+    meshIdentifier = string
+    username    = string
+    firstName = string
+    lastName = string
+    email = string
+    euid = string
+    roles = list(string)
+  }))
 }

@@ -6,6 +6,9 @@ on:
       bb-run:
         description: 'Building Block Run Object'
         required: true
+      user-permissions:
+        description: 'Current user permissions'
+        required: true
 
 jobs:
   parse-json:
@@ -16,7 +19,8 @@ jobs:
 
       - name: Received Building Block Run
         run: |
-          echo "Received JSON: $(echo '${{ github.event.inputs.bb-run }}' | base64 --decode)"
+          echo "Received Run JSON: $(echo '${{ github.event.inputs.bb-run }}' | base64 --decode)"
+          echo "User Permissions JSON: $(echo '${{ github.event.inputs.user-permissions }}' | base64 --decode)"
 
       - name: Parse JSON Input
         id: parse_json

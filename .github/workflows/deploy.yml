@@ -6,17 +6,27 @@ on:
       bb-run:
         description: 'Building Block Run Object'
         required: true
+      user-permissions:
+        description: 'Current user permissions'
+        required: true
+      api-key:
+        description: 'meshfed API Key to post updates'
+        required: true
 
 jobs:
-  parse-json:
+  deploy:
     runs-on: ubuntu-latest
+    outputs:
+      api_token: ${{ steps.setup-meshstack-auth.outputs.api_token }}
+      bb_run_id: ${{ steps.setup-meshstack-auth.outputs.bb_run_id }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Received Building Block Run
         run: |
-          echo "Received JSON: $(echo '${{ github.event.inputs.bb-run }}' | base64 --decode)"
+          echo "Received Run JSON: $(echo '${{ github.event.inputs.bb-run }}' | base64 --decode)"
+          echo "User Permissions JSON: $(echo '${{ github.event.inputs.user-permissions }}' | base64 --decode)"
 
       - name: Parse JSON Input
         id: parse_json
@@ -29,3 +39,73 @@ jobs:
         run: |
           value1=$(echo '${{ github.event.inputs.bb-run }}' | base64 --decode | jq -r .key1)
           echo "Using parsed value1: $value1"
+
+      - name: Extract Variables
+        id: variables
+        run: |
+          bb_run_id=$(echo '${{ github.event.inputs.bb-run }}' | base64 --decode | jq -r .meta.uuid)
+          echo "bb_run_id=$bb_run_id" >> $GITHUB_OUTPUT
+
+      - name: Setup meshstack auth
+        id: setup-meshstack-auth
+        run: |
+          export CLIENT_ID="dd829602-e4d1-4125-ac28-621d3d5d7c41"
+          export KEY_SECRET="${{ secrets.BUILDINGBLOCK_API_KEY_SECRET }}"
+          export token=$(curl --fail -L -X POST "https://federation.dev.meshcloud.io/api/login" \
+            -d "grant_type=client_credentials" \
+            -d "client_id=$CLIENT_ID" \
+            -d "client_secret=$KEY_SECRET" | jq -r .access_token)
+          echo "api_token=$token" >> $GITHUB_OUTPUT
+
+      - name: Register source
+        run: |
+          curl --fail -X POST "https://federation.dev.meshcloud.io/api/meshobjects/meshbuildingblockruns/${{ steps.variables.outputs.bb_run_uuid }}/status/source" \
+            -H 'Content-Type: application/vnd.meshcloud.api.meshbuildingblockrun.v1.hal+json' \
+            -H 'Accept: application/vnd.meshcloud.api.meshbuildingblockrun.v1.hal+json' \
+            -H "Authorization: Bearer ${{ steps.setup-meshstack-auth.outputs.api_token }}" \
+            -d '{
+            "source": {
+              "id": "github",
+              "externalRunId": "${{ github.run_id }}",
+              "externalRunUrl": "https://github.com/meshcloud/static-website-assets/actions/runs/${{ github.run_id }}"
+            },
+            "steps": [
+              {
+                "id": "create-bucket-stack",
+                "displayName": "Create bucket"
+              },
+              {
+                "id": "grant-access-to-bucket",
+                "displayName": "Grant access to bucket"
+              }
+            ]
+            }'
+  report-final-status:
+    runs-on: ubuntu-latest
+    if: always()
+    needs: deploy
+    steps:
+      - name: Send final status (success)
+        if: ${{ needs.deploy.result == 'success' }}
+        run: |
+          curl --fail -X PATCH "https://federation.dev.meshcloud.io/api/meshobjects/meshbuildingblockruns/${{ needs.deploy.outputs.bb_run_id }}/status/source/github" \
+            -H 'Content-Type: application/vnd.meshcloud.api.meshbuildingblockrun.v1.hal+json' \
+            -H 'Accept: application/vnd.meshcloud.api.meshbuildingblockrun.v1.hal+json' \
+            -H "Authorization: Bearer ${{ needs.deploy.outputs.api_token }}" \
+            -d '{
+                  "status": "SUCCESS",
+                  "summary": "Website deployment successful",
+                  "steps": []
+                }'
+      - name: Send final status (failure)
+        if: ${{ needs.deploy.result == 'failure' }}
+        run: |
+          curl --fail -X PATCH "https://federation.dev.meshcloud.io/api/meshobjects/meshbuildingblockruns/${{ needs.deploy.outputs.bb_run_id }}/status/source/github" \
+            -H 'Content-Type: application/vnd.meshcloud.api.meshbuildingblockrun.v1.hal+json' \
+            -H 'Accept: application/vnd.meshcloud.api.meshbuildingblockrun.v1.hal+json' \
+            -H "Authorization: Bearer ${{ needs.deploy.outputs.api_token }}" \
+            -d '{
+                  "status": "FAILED",
+                  "summary": "Website deployment failed",
+                  "steps": []
+                }'
