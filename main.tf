@@ -33,7 +33,7 @@ resource "terraform_data" "replacement" {
   provisioner "local-exec" {
     when = destroy
     environment = {
-      run_data = jsondecode(base64decode(self.input.building_block_run_b64)).spec.behavior
+      run_data = jsondecode(base64decode(self.input.meshstack_building_block_run_b64)).spec.behavior
     }
     command = <<EOT
       set -e
