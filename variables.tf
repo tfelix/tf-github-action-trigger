@@ -1,7 +1,14 @@
-variable "github_token" {
-  description = "GitHub Personal Access Token"
-  type        = string
-  sensitive   = true
+variable "github_app_id" {
+  type = string
+}
+
+variable "github_app_installation_id" {
+  type = string
+}
+
+variable "github_app_pem_file" {
+  type      = string
+  sensitive = true
 }
 
 variable "github_owner" {
